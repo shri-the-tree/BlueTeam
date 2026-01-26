@@ -1,0 +1,16 @@
+{
+  "global": {
+    "trigram_matches": 0.25,
+    "is_imperative": 0.15,
+    "modal_count": 0.05,
+    "role_pattern": 0.15,
+    "fk_grade": 0.08,
+    "special_char_ratio": 0.05,
+    "embedding_similarity": 0.27
+  },
+  "user_overrides": {
+    "user_123": {
+      "embedding_similarity": 0.20
+    }
+  }
+}

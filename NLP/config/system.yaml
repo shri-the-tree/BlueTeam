@@ -1,0 +1,27 @@
+patterns:
+  global_path: data/patterns/latest.json
+  user_dir: data/patterns/users/
+  
+weights:
+  global_path: config/weights.json
+  
+checkpoints:
+  enabled: true
+  interval: daily
+  retention: 30  # days
+  
+review_queue:
+  thresholds:
+    high: 0.55
+    low: 0.45
+  batch_size: 50
+  
+auto_tuning:
+  enabled: true
+  interval: 100  # reviews
+  min_precision: 0.7
+  
+embeddings:
+  model: glove-wiki-gigaword-300
+  cache_path: models/glove.pkl
+  mock: true # Set to false when real embeddings are available
