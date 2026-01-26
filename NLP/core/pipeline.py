@@ -72,5 +72,6 @@ class DetectionPipeline:
             'classification': classification,
             'score': result['score'],
             'features': result['normalized_features'],
-            'weighted_features': result['weighted_features']
+            'weighted_features': result['weighted_features'],
+            'matched_patterns': features.get('matched_patterns', [])
         }

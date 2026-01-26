@@ -3,3 +3,6 @@ scipy
 spacy
 textstat
 pyyaml
+fastapi
+uvicorn[standard]
+pydantic

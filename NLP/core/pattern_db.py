@@ -19,15 +19,20 @@ class PatternDatabase:
         self._load_user_patterns()
 
     def _load_embeddings(self, config):
-        """Load GloVe or mock embeddings based on config"""
+        """Load SpaCy or mock embeddings based on config"""
         if self.mock_embeddings:
             print("[Info] Using Mock Embeddings (no memory overhead)")
             return MockEmbeddingModel()
         
-        # Real loading logic would go here (e.g. loading pickle or parsing .txt)
-        # keeping it lightweight for now since user said 'nope' to having them
-        print("[Warning] Real embeddings requested but file not found. Falling back to mock.")
-        return MockEmbeddingModel()
+        try:
+            import spacy
+            model_name = config['embeddings'].get('model', 'en_core_web_md')
+            print(f"[Info] Loading SpaCy embeddings model: {model_name}...")
+            nlp = spacy.load(model_name)
+            return SpacyEmbeddingModel(nlp)
+        except Exception as e:
+            print(f"[Warning] Failed to load SpaCy model '{model_name}': {e}. Falling back to mock.")
+            return MockEmbeddingModel()
 
     def _load_user_patterns(self):
         """Load all user-specific pattern files"""
@@ -76,6 +81,16 @@ class PatternDatabase:
         self.global_data['updated_at'] = "2026-01-25T..." # Use actual time in real impl
         with open(self.global_path, 'w') as f:
             json.dump(self.global_data, f, indent=2)
+
+class SpacyEmbeddingModel:
+    def __init__(self, nlp):
+        self.nlp = nlp
+        
+    def __contains__(self, word):
+        return word in self.nlp.vocab
+        
+    def __getitem__(self, word):
+        return self.nlp.vocab[word].vector
 
 class MockEmbeddingModel:
     def __contains__(self, word):
