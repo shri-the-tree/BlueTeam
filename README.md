@@ -51,7 +51,7 @@ The **NLP Module** is the foundation of the BlueTeam Security Suite, providing f
 
 ---
 
-## ✨ Features
+## ✨ Phase 1 Features (NLP Module)
 
 ### Core Detection Capabilities
 - **Multi-Stage Detection Pipeline**
@@ -60,11 +60,11 @@ The **NLP Module** is the foundation of the BlueTeam Security Suite, providing f
   - Stage 3: Weighted scoring with configurable thresholds
   - Stage 4: Borderline case handling with review queue
 
-### Feature Extractors
+### NLP Feature Extractors
 - **N-gram Extractor**: Identifies suspicious phrase patterns and trigram matches
 - **Syntax Extractor**: Analyzes parse trees, modal verbs, and syntactic structures
 - **Statistical Extractor**: Evaluates readability metrics, special characters, and text complexity
-- **Embedding Extractor**: Computes semantic similarity to known jailbreak patterns
+- **Embedding Extractor**: Computes semantic similarity to known jailbreak patterns (GloVe-based)
 
 ### Adaptive Components
 - **Auto-Tuner**: Dynamically adjusts detection weights based on historical performance
@@ -76,19 +76,34 @@ The **NLP Module** is the foundation of the BlueTeam Security Suite, providing f
 - **Interactive Approval**: Manual review and approval workflow for auto-learned patterns
 - **Configuration Management**: YAML-based system config and JSON weight files
 
+### 🔮 Coming in Future Phases
+
+**Phase 2 - ML Module** (Planned)
+- Random Forest & XGBoost classifiers for behavioral pattern recognition
+- Feature engineering from NLP outputs
+- Online learning for real-time adaptation
+- Ensemble voting with NLP layer
+
+**Phase 3 - LLM Module** (Planned)
+- Fine-tuned transformer models for deep semantic analysis
+- Context-aware jailbreak detection
+- Multi-turn conversation analysis
+- Transfer learning from adversarial datasets
+
 ---
 
-## 🚀 Installation
+## 🚀 Installation (Phase 1 - NLP Module)
 
 ### Prerequisites
 - Python 3.8 or higher
 - pip package manager
+- 4GB RAM minimum (8GB recommended)
 
 ### Standard Installation
 
 1. **Clone the repository** (or navigate to the project directory)
    ```bash
-   cd NLP-Defender
+   cd NLP
    ```
 
 2. **Install dependencies**
@@ -112,6 +127,8 @@ After this, you can run commands from anywhere using:
 ```bash
 nlp-defender scan "Your prompt here"
 ```
+
+> **Note**: Phase 2 (ML) and Phase 3 (LLM) modules will have separate installation instructions when released.
 
 ---
 
@@ -235,39 +252,100 @@ embeddings:
 ### Directory Structure
 
 ```
-NLP-Defender/
-├── cli.py                      # Command-line interface
-├── setup.py                    # Package configuration
-├── requirements.txt            # Python dependencies
-├── config/
-│   ├── system.yaml            # System configuration
-│   └── weights.json           # Feature weights
-├── core/
-│   ├── pipeline.py            # Main detection pipeline
-│   ├── pattern_db.py          # Pattern database manager
-│   ├── regex_filter.py        # Fast regex matcher
-│   ├── scorer.py              # Scoring engine
-│   ├── auto_tuner.py          # Automatic weight adjustment
-│   ├── pattern_learner.py     # Pattern discovery
-│   └── review_queue.py        # Borderline case management
-├── extractors/
-│   ├── ngram_extractor.py     # N-gram feature extraction
-│   ├── syntax_extractor.py    # Syntactic analysis
-│   ├── statistical_extractor.py # Statistical features
-│   └── embedding_extractor.py # Semantic embeddings
-├── data/
-│   └── patterns/
-│       └── latest.json        # Current pattern database
-└── checkpoints/               # Version-controlled snapshots
-    ├── patterns/
-    └── weights/
+BlueTeam/                      # Root project directory
+├── NLP/                       # ✅ Phase 1: NLP Module (Current)
+│   ├── cli.py                 # Command-line interface
+│   ├── setup.py               # Package configuration
+│   ├── requirements.txt       # Python dependencies
+│   ├── config/
+│   │   ├── system.yaml        # System configuration
+│   │   └── weights.json       # Feature weights
+│   ├── core/
+│   │   ├── pipeline.py        # Main detection pipeline
+│   │   ├── pattern_db.py      # Pattern database manager
+│   │   ├── regex_filter.py    # Fast regex matcher
+│   │   ├── scorer.py          # Scoring engine
+│   │   ├── auto_tuner.py      # Automatic weight adjustment
+│   │   ├── pattern_learner.py # Pattern discovery
+│   │   └── review_queue.py    # Borderline case management
+│   ├── extractors/
+│   │   ├── ngram_extractor.py     # N-gram feature extraction
+│   │   ├── syntax_extractor.py    # Syntactic analysis
+│   │   ├── statistical_extractor.py # Statistical features
+│   │   └── embedding_extractor.py # Semantic embeddings
+│   ├── data/
+│   │   └── patterns/
+│   │       └── latest.json    # Current pattern database
+│   └── checkpoints/           # Version-controlled snapshots
+│       ├── patterns/
+│       └── weights/
+│
+├── ML/                        # 🔜 Phase 2: ML Module (Coming Soon)
+│   └── (To be implemented)
+│
+└── LLM/                       # 📋 Phase 3: LLM Module (Planned)
+    └── (To be implemented)
 ```
 
 ---
 
 ## 🏗️ Architecture
 
-### Detection Pipeline Flow
+### Multi-Phase System Overview
+
+The BlueTeam Security Suite uses a **cascading defense** architecture where each phase adds a specialized layer of protection:
+
+```
+                    ┌──────────────┐
+                    │ Input Prompt │
+                    └──────┬───────┘
+                           ↓
+         ┌─────────────────────────────────┐
+         │  PHASE 1: NLP MODULE (ACTIVE)   │
+         │  • Regex fast-fail              │
+         │  • Linguistic features          │
+         │  • Pattern matching             │
+         │  Speed: <10ms | Accuracy: 85%   │
+         └─────────┬───────────────────────┘
+                   ↓
+            ┌──────────┐
+            │ Benign?  │──── Yes ──→ ✅ Allow
+            └────┬─────┘
+                 │ No/Uncertain
+                 ↓
+         ┌─────────────────────────────────┐
+         │ PHASE 2: ML MODULE (COMING)     │
+         │  • Behavioral analysis          │
+         │  • Feature engineering          │
+         │  • Ensemble voting              │
+         │  Speed: ~50ms | Accuracy: 92%   │
+         └─────────┬───────────────────────┘
+                   ↓
+            ┌──────────┐
+            │ Benign?  │──── Yes ──→ ✅ Allow
+            └────┬─────┘
+                 │ No/Uncertain
+                 ↓
+         ┌─────────────────────────────────┐
+         │ PHASE 3: LLM MODULE (PLANNED)   │
+         │  • Deep semantic analysis       │
+         │  • Context understanding        │
+         │  • Multi-turn reasoning         │
+         │  Speed: ~200ms | Accuracy: 97%  │
+         └─────────┬───────────────────────┘
+                   ↓
+            ┌──────────┐
+            │ Verdict  │──── Suspicious ──→ 🚫 Block
+            └──────────┘      Borderline ──→ 👁️ Review Queue
+```
+
+**Key Design Principles**:
+- ⚡ **Fast-fail First**: Quick checks happen first to minimize latency
+- 🎯 **Escalating Confidence**: Each layer provides higher accuracy at higher cost
+- 🔄 **Feedback Loop**: Insights from later phases improve earlier ones
+- 🎛️ **Configurable Cascade**: Enable only the modules you need
+
+### Phase 1: NLP Detection Pipeline (Current)
 
 ```
 Input Prompt
@@ -456,27 +534,82 @@ For issues, questions, or feature requests:
 
 ---
 
-## 🗺️ Roadmap
+## 🗺️ Development Roadmap
 
-### Current Version (v1.0)
+### ✅ Phase 1 - NLP Module (COMPLETED)
+**Status**: Production-ready  
+**Timeline**: January 2026
+
 - ✅ Core detection pipeline
-- ✅ Multi-stage feature extraction
+- ✅ Multi-stage feature extraction (N-grams, Syntax, Statistics, Embeddings)
 - ✅ Checkpoint and rollback system
 - ✅ Pattern learning and approval workflow
+- ✅ Adaptive auto-tuning
+- ✅ Review queue for borderline cases
 
-### Future Enhancements
-- 🔜 Multi-language support
-- 🔜 Real-time monitoring dashboard
-- 🔜 API server with REST endpoints
-- 🔜 Integration with popular LLM frameworks
-- 🔜 Advanced analytics and reporting
+### 🔜 Phase 2 - ML Module (IN PLANNING)
+**Status**: Design phase  
+**Target**: Q1-Q2 2026
+
+**Planned Features**:
+- 🔄 Classical ML classifiers (Random Forest, XGBoost, SVM)
+- � Feature engineering layer using NLP outputs
+- 🎯 Behavioral pattern recognition
+- 🔄 Online learning with incremental updates
+- 🤝 Ensemble voting system (NLP + ML consensus)
+- 📈 Advanced metrics dashboard
+- 🔗 Integration API for seamless NLP-ML pipeline
+
+**Goals**:
+- Catch zero-day jailbreaks that evade NLP patterns
+- Improve precision through behavioral analysis
+- Reduce false positives via ensemble voting
+
+### 📋 Phase 3 - LLM Module (PLANNED)
+**Status**: Research phase  
+**Target**: Q3-Q4 2026
+
+**Planned Features**:
+- 🧠 Fine-tuned transformer models (BERT, RoBERTa, or custom)
+- 💬 Multi-turn conversation context analysis
+- 🌍 Multilingual jailbreak detection
+- 🎨 Adversarial training on synthetic jailbreak datasets
+- 🔮 Semantic understanding of novel attack vectors
+- � Transfer learning from cybersecurity corpora
+- ⚡ Optimized inference on 12GB RAM systems
+
+**Goals**:
+- Deep semantic understanding beyond surface patterns
+- Context-aware detection across conversation history
+- Proactive identification of emerging attack strategies
+
+### � Cross-Phase Integration
+- **Unified API**: Single endpoint to query all three modules
+- **Modular Deployment**: Use only the modules you need
+- **Cascading Detection**: Fast NLP filter → ML classifier → LLM deep analysis
+- **Shared Learning**: Insights from one module improve others
+- **Performance Optimization**: Smart routing based on prompt complexity
+
+---
+
+## 🎯 Phase-Specific Use Cases
+
+| Scenario | Recommended Modules | Rationale |
+|----------|-------------------|-----------|
+| **High-throughput API** | NLP only | Fastest response time, minimal compute |
+| **Enterprise security** | NLP + ML | Balance of speed and accuracy |
+| **Maximum protection** | NLP + ML + LLM | Comprehensive coverage, research environments |
+| **Resource-constrained** | NLP only | Works on 4GB RAM, edge devices |
+| **Multilingual support** | NLP + LLM (Phase 3) | LLM provides language understanding |
 
 ---
 
 <div align="center">
 
-**Built with ❤️ for LLM Security**
+**Building the Future of LLM Security - One Layer at a Time** 🛡️
 
-[⬆ Back to top](#nlp-defender)
+*Currently in Phase 1 (NLP) | ML Module Coming Soon | LLM Integration Planned*
+
+[⬆ Back to top](#blueteam-security-suite)
 
 </div>
