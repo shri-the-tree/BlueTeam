@@ -17,11 +17,27 @@ class SyntaxExtractor:
         
         return {
             'is_imperative': self._detect_imperative(doc),
-            'modal_count': self._count_modals(doc),
+            'modal_verb_count': self._count_modals(doc),
             'role_pattern': self._detect_role_pattern(doc),
-            'parse_depth': self._max_parse_depth(doc),
-            'parenthetical_depth': self._parenthetical_depth(prompt)
+            'parse_tree_depth': self._max_parse_depth(doc),
+            'parenthetical_depth': self._parenthetical_depth(prompt),
+            'passive_voice_ratio': self._passive_voice_ratio(doc),
+            'sentence_count': self._sentence_count(doc)
         }
+    
+    def _passive_voice_ratio(self, doc):
+        passive_count = 0
+        total_verbs = 0
+        for token in doc:
+            if token.pos_ == "VERB":
+                total_verbs += 1
+                # Check for passive dependencies
+                if any(child.dep_ in ["auxpass", "nsubjpass"] for child in token.children):
+                    passive_count += 1
+        return passive_count / total_verbs if total_verbs > 0 else 0.0
+
+    def _sentence_count(self, doc):
+        return len(list(doc.sents))
     
     def _detect_imperative(self, doc):
         """First word is VERB (no subject)"""

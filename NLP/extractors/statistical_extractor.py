@@ -10,8 +10,20 @@ class StatisticalExtractor:
             'word_count': len(words),
             'fk_grade': self._safe_fk_grade(prompt),
             'special_char_ratio': self._special_char_ratio(prompt),
-            'repetition_ratio': self._repetition_ratio(words)
+            'repetition_ratio': self._repetition_ratio(words),
+            'delimiter_count': self._delimiter_count(prompt),
+            'avg_word_length': self._avg_word_length(words)
         }
+    
+    def _delimiter_count(self, text):
+        # Common delimiters used in exploits (attention exploits, separators, and messy prompts)
+        delimiters = "-_=|:;,.\\/<>[]{}()?!*#@$%^&+"
+        return sum(1 for c in text if c in delimiters)
+
+    def _avg_word_length(self, words):
+        if not words:
+            return 0
+        return sum(len(w) for w in words) / len(words)
     
     def _safe_fk_grade(self, text):
         try:

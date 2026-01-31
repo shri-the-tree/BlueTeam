@@ -29,4 +29,23 @@ class EmbeddingExtractor:
              # handle zero vector
              similarity = 0.0
              
-        return {'embedding_similarity': float(similarity)}
+        return {
+            'embedding_similarity': float(similarity),
+            'semantic_density': self._semantic_density(vectors)
+        }
+
+    def _semantic_density(self, vectors):
+        if not vectors:
+            return 0.0
+        
+        # Normalize vectors
+        vectors = np.array(vectors)
+        norms = np.linalg.norm(vectors, axis=1, keepdims=True)
+        norms[norms == 0] = 1e-10
+        normalized_vectors = vectors / norms
+        
+        # The magnitude of the mean unit vector represents semantic consistency/density
+        # Values closer to 1.0 mean words are semantically similar (coherent)
+        # Values closer to 0.0 mean words are scattered
+        mean_vector = np.mean(normalized_vectors, axis=0)
+        return float(np.linalg.norm(mean_vector))

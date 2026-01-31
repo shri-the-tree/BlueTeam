@@ -3,11 +3,13 @@ class ScoringEngine:
         self.weights = weights_config
         self.normalization_caps = {
             'trigram_matches': 3,
-            'modal_count': 3,
+            'modal_verb_count': 3,
             'fk_grade': 15,
             'special_char_ratio': 0.1,
-            'parse_depth': 10,
-            'parenthetical_depth': 5
+            'parse_tree_depth': 12,
+            'parenthetical_depth': 5,
+            'avg_word_length': 10,
+            'delimiter_count': 10
         }
     
     def score(self, features):
