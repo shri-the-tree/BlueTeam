@@ -43,17 +43,42 @@ async def analyze_raw(request: Request, threshold: float = 0.7):
     
     try:
         body = await request.body()
-        prompt = body.decode("utf-8")
-        if not prompt:
+        content = body.decode("utf-8").strip()
+        if not content:
             raise HTTPException(status_code=400, detail="Empty prompt")
-            
-        # Pass threshold overrides via options dict
-        options = {"threshold": threshold}
+
+        # Smart Fallback: Check if user accidentally sent JSON to the raw endpoint
+        if content.startswith('{') and content.endswith('}'):
+            try:
+                import json
+                data = json.loads(content)
+                prompt = data.get('prompt', content)
+                # Priority: 
+                # 1. URL Query Param (if provided)
+                # 2. JSON 'options' field
+                # 3. Default (0.7)
+                json_options = data.get('options', {})
+                
+                # Check if threshold was explicitly provided in URL (not default)
+                # Fastapi doesn't tell us if it's default or not easily, so we check
+                # if it's different from the standard default.
+                if threshold != 0.7:
+                    final_threshold = threshold
+                else:
+                    final_threshold = json_options.get('threshold', 0.7)
+                
+                options = {**json_options, "threshold": final_threshold}
+            except:
+                prompt = content
+                options = {"threshold": threshold}
+        else:
+            prompt = content
+            options = {"threshold": threshold}
         
         return firewall.analyze(prompt, options=options)
         
     except Exception as e:
-        raise HTTPException(status_code=422, detail=f"Invalid raw content: {str(e)}")
+        raise HTTPException(status_code=422, detail=f"Request error: {str(e)}")
 
 @app.get("/health")
 def health():

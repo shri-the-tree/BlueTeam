@@ -79,19 +79,16 @@ class MLFirewall:
                 "latency_ms": (time.time() - start_time) * 1000
             }
 
-        # Convert to DF for prediction (order matters, assuming training saved columns)
-        # We need to ensure column order matches training.
-        # For now we rely on dict->df creation being consistent or implicit sort.
-        # Ideally, we should save feature_names in config.
-        # Using sorted keys for deterministic order if config not explicitly saving headers.
-        if hasattr(self.config, 'get') and self.config.get('feature_names'):
+        if hasattr(self, 'config') and isinstance(self.config, dict) and self.config.get('feature_names'):
             cols = self.config['feature_names']
-            # fill missing with 0
-            row_data = {k: features.get(k, 0) for k in cols}
+            # Strict ordering and value mapping
+            row_data = [features.get(k, 0) for k in cols]
             X = pd.DataFrame([row_data], columns=cols)
         else:
-            # Fallback (risky if dict order changes, but python 3.7+ preserves insert order)
-            X = pd.DataFrame([features])
+            # Emergency Fallback: Alphabetical sort (matches our fixed trainer)
+            sorted_keys = sorted(features.keys())
+            row_data = [features[k] for k in sorted_keys]
+            X = pd.DataFrame([row_data], columns=sorted_keys)
 
         # STAGE 1: Anomaly Detection
         # score_samples returns "opposite of anomaly score". Lower = more abnormal.
@@ -109,7 +106,7 @@ class MLFirewall:
                 "score": float(anomaly_score_norm),
                 "stage": "anomaly_filter",
                 "latency_ms": latency,
-                "explanation": "Statistically normal prompt (Stage 1)",
+                "explanation": f"Passed: Low Anomaly ({anomaly_score_norm:.2f})",
                 "features": features
             }
             
@@ -120,9 +117,10 @@ class MLFirewall:
         # XGBoost
         xgb_score = self.xgb.predict_proba(X)[0, 1]
         
-        # Weighted Voting
-        weights = self.config.get('weights', (0.3, 0.3, 0.4))
-        w1, w2, w3 = weights
+        # Weighted Voting (Defensive Override)
+        # We use 0.5 Anomaly / 0.1 LogReg / 0.4 XGBoost
+        # This prevents a 'blind' LogReg from vetoing a strong Anomaly alert.
+        w1, w2, w3 = (0.5, 0.1, 0.4)
         
         final_score = (
             w1 * anomaly_score_norm +
@@ -130,12 +128,17 @@ class MLFirewall:
             w3 * xgb_score
         )
         
-        threshold = options.get('threshold', self.config.get('threshold', 0.7))
+        threshold_val = options.get('threshold', self.config.get('threshold', 0.7))
+        try:
+            threshold = float(threshold_val)
+        except:
+            threshold = 0.7
+            
         verdict = "block" if final_score > threshold else "pass"
         
         latency = (time.time() - start_time) * 1000
         
-        explanation = self._explain_verdict(verdict, final_score, features)
+        explanation = self._explain_verdict(verdict, final_score, features, threshold)
         
         return {
             "verdict": verdict,
@@ -151,9 +154,9 @@ class MLFirewall:
             "features": features
         }
 
-    def _explain_verdict(self, verdict: str, score: float, features: dict) -> str:
+    def _explain_verdict(self, verdict: str, score: float, features: dict, threshold: float) -> str:
         if verdict == "pass":
-            return f"Passed analysis (Risk: {score:.2f})"
+            return f"Passed analysis (Risk: {score:.2f}, Threshold: {threshold:.2f})"
         
         # Find suspicious signals
         reasons = []
@@ -165,4 +168,4 @@ class MLFirewall:
         if not reasons:
             reasons.append("Complex contextual pattern")
             
-        return f"Blocked: {', '.join(reasons)} (Risk: {score:.2f})"
+        return f"Blocked: {', '.join(reasons)} (Risk: {score:.2f}, Threshold: {threshold:.2f})"

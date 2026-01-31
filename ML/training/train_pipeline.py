@@ -151,6 +151,9 @@ class TrainingPipeline:
         df = pd.DataFrame(features_list)
         # Handle potential NaNs
         df = df.fillna(0)
+        # Ensure column order is alphabetical for consistency with inference
+        cols = sorted(df.columns.tolist())
+        df = df[cols]
         return df
 
     def train(self):

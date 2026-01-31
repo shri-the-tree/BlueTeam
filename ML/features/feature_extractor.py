@@ -41,7 +41,14 @@ class FeatureExtractor:
         ]
         self.role_play_markers = [
             "act as", "pretend you are", "roleplay", "you are now", 
-            "simulate being", "answer as if", "persona"
+            "simulate being", "answer as if", "persona", "godmode", "rebel",
+            "inverted", "liberated", "god-mode"
+        ]
+        self.special_slang_markers = [
+            "lfg", "fuck yeah", "fuck yeah lfg", "pwned", "hacked", "trauma"
+        ]
+        self.leet_markers = [
+            "l33t", "1337", "leetspeak", "leet markdown"
         ]
         self.multi_turn_markers = [
             "for now", "first", "initially", "let's start with", "stay in character",
@@ -140,7 +147,13 @@ class FeatureExtractor:
 
         # Contextual
         hypothetical_count = self._count_markers(prompt_lower, self.hypothetical_markers)
-        role_play_detected = self._count_markers(prompt_lower, self.role_play_markers) > 0
+        
+        # Augmented Roleplay/Behavioral detection
+        role_play_score = self._count_markers(prompt_lower, self.role_play_markers)
+        slang_score = self._count_markers(prompt_lower, self.special_slang_markers)
+        leet_detected = self._count_markers(prompt_lower, self.leet_markers) > 0
+        
+        role_play_detected = (role_play_score + slang_score) > 0
         multi_turn_setup = self._count_markers(prompt_lower, self.multi_turn_markers) > 0
         
         # Justification ratio: Setup / Request (Approximate heuristic)
@@ -176,7 +189,8 @@ class FeatureExtractor:
             "negation_count": negation_count,
             "question_density": question_density,
             "conditional_count": conditional_count,
-            "indirect_request_count": indirect_request_count
+            "indirect_request_count": indirect_request_count,
+            "leetspeak_detected": leet_detected
         }
 
     def extract_all(self, prompt: str) -> Dict[str, Any]:
