@@ -44,20 +44,9 @@ class MLFirewall:
     def _normalize_anomaly(self, score: float) -> float:
         """
         Normalize Isolation Forest score to 0-1.
-        IF returns scores approx -0.5 to 0.5 where lower is more anomalous.
-        We want 1.0 = highly anomalous, 0.0 = normal.
         """
-        # Standardize inversion: Lower score (-0.8) -> High Anomaly -> 1.0
-        # Higher score (0.1) -> Normal -> 0.0
-        # Sigmoid can work, or simple linear scaling if we knew bounds. 
-        # Since we use decision_function usually, let's assume 'score_samples' output.
-        # IF score_samples: average path length. Smaller = anomaly.
-        # But sklearn implementation of score_samples returns negative offset of path length.
-        # So closer to 0 is normal, more negative is anomaly? 
-        # Wait, sklearn: "The lower, the more abnormal." 
-        # So -1 is very abnormal, -0.5 is kinda, etc.
-        # Let's simple invert and sigmoid.
-        return 1 / (1 + np.exp(score * 5)) # Tuning gain to spread values
+        # Fixed: Using gain 10 to match training pipeline
+        return 1 / (1 + np.exp(score * 10))
 
     def analyze(self, prompt: str, options: Dict[str, Any] = None) -> Dict[str, Any]:
         """Main inference pipeline"""
@@ -67,9 +56,6 @@ class MLFirewall:
         # Features
         features = self.extractor.extract_all(prompt)
         
-        # If models not loaded, fail open (safe) or block?
-        # Specification says "Fail gracefully (fallback)". 
-        # In standalone, we return error or dummy.
         if not self.is_loaded:
              return {
                 "verdict": "pass",
@@ -81,19 +67,15 @@ class MLFirewall:
 
         if hasattr(self, 'config') and isinstance(self.config, dict) and self.config.get('feature_names'):
             cols = self.config['feature_names']
-            # Strict ordering and value mapping
             row_data = [features.get(k, 0) for k in cols]
             X = pd.DataFrame([row_data], columns=cols)
         else:
-            # Emergency Fallback: Alphabetical sort (matches our fixed trainer)
             sorted_keys = sorted(features.keys())
             row_data = [features[k] for k in sorted_keys]
             X = pd.DataFrame([row_data], columns=sorted_keys)
 
         # STAGE 1: Anomaly Detection
-        # score_samples returns "opposite of anomaly score". Lower = more abnormal.
         raw_anomaly = self.iso_forest.score_samples(X)[0] 
-        # My normalization logic above: Low(Negative) -> High Norm.
         anomaly_score_norm = self._normalize_anomaly(raw_anomaly)
         
         anomaly_threshold = options.get('anomaly_threshold', self.config.get('anomaly_threshold', 0.5))
@@ -111,22 +93,30 @@ class MLFirewall:
             }
             
         # STAGE 2: Intent Ensemble
-        # LogReg
         logreg_score = self.logreg.predict_proba(X)[0, 1]
-        
-        # XGBoost
         xgb_score = self.xgb.predict_proba(X)[0, 1]
         
-        # Weighted Voting (Defensive Override)
-        # We use 0.5 Anomaly / 0.1 LogReg / 0.4 XGBoost
-        # This prevents a 'blind' LogReg from vetoing a strong Anomaly alert.
-        w1, w2, w3 = (0.5, 0.1, 0.4)
+        # Fixed: Use dynamic weights from config, fallback to 0.5/0.1/0.4 if missing
+        w1, w2, w3 = self.config.get('weights', (0.5, 0.1, 0.4))
         
-        final_score = (
-            w1 * anomaly_score_norm +
-            w2 * logreg_score +
-            w3 * xgb_score
-        )
+        # --- NEW: High Confidence Override (Surgery Fix) ---
+        # If Anomaly or XGBoost are extremely sure (95%+), we essentially ignore 
+        # a 'safe' LogReg score which can be socially engineered.
+        is_extreme_risk = anomaly_score_norm > 0.95 or xgb_score > 0.95
+        
+        if is_extreme_risk:
+             # Force a higher contribution from the experts, cap the LogReg influence
+             # This prevents the 'Linear Veto' exploit.
+             effective_logreg = max(logreg_score, 0.5) if logreg_score < 0.1 else logreg_score
+             final_score = (w1 * anomaly_score_norm + w2 * effective_logreg + w3 * xgb_score)
+             # Safety floor: An extreme risk signal from either expert should nearly guarantee a block
+             final_score = max(final_score, 0.85) 
+        else:
+             final_score = (
+                w1 * anomaly_score_norm +
+                w2 * logreg_score +
+                w3 * xgb_score
+             )
         
         threshold_val = options.get('threshold', self.config.get('threshold', 0.7))
         try:

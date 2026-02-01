@@ -18,47 +18,59 @@ class FeatureExtractor:
         # Behavioral Markers
         self.politeness_markers = [
             "please", "thank you", "kindly", "would reflect", "would appreciate", 
-            "grateful", "could you", "would you", "respectfully"
+            "grateful", "could you", "would you", "respectfully", "if you don't mind",
+            "humbly", "sincerely"
         ]
         self.urgency_markers = [
             "urgent", "quickly", "immediately", "asap", "emergency", "critical", 
-            "deadline", "vital", "right now"
+            "deadline", "vital", "right now", "save me", "help me", "important"
         ]
         self.authority_markers = [
             "researcher", "professor", "thesis", "academic", "official", 
             "authorized", "certified", "developer", "administrator", "audit",
-            "security test", "compliance"
+            "security test", "compliance", "engineer", "scientist", "manager",
+            "executive", "government", "legally", "court"
         ]
         self.safety_keywords = [
             "ethical", "guidelines", "policy", "responsible", "safe", 
-            "appropriate", "aligned", "educational", "purely", "context"
+            "appropriate", "aligned", "educational", "purely", "context",
+            "for research", "strictly academic", "no harm", "theoretical"
         ]
         
         # Contextual Markers
         self.hypothetical_markers = [
             "imagine", "suppose", "what if", "let's say", "hypothetically", 
-            "theoretically", "for the sake of", "in a world where", "movie script"
+            "theoretically", "for the sake of", "in a world where", "movie script",
+            "fictional", "novel", "scenario", "alternate reality"
         ]
         self.role_play_markers = [
             "act as", "pretend you are", "roleplay", "you are now", 
             "simulate being", "answer as if", "persona", "godmode", "rebel",
-            "inverted", "liberated", "god-mode"
+            "inverted", "liberated", "god-mode", "character", "play a part",
+            "jailbroken", "unfiltered", "unrestricted", "you have to save",
+            "you are on", "you're on", "you respond to", "you are an expert"
+        ]
+        self.formatting_pressure_markers = [
+            "format like", "as a recipe", "markdown title", "detailed expert output",
+            "no disclaimers", "avoid generalizations", "structured", "precise",
+            "required format", "must follow"
         ]
         self.special_slang_markers = [
-            "lfg", "fuck yeah", "fuck yeah lfg", "pwned", "hacked", "trauma"
+            "lfg", "fuck yeah", "fuck yeah lfg", "pwned", "hacked", "trauma",
+            "based", "redpill", "bluepill"
         ]
         self.leet_markers = [
-            "l33t", "1337", "leetspeak", "leet markdown"
+            "l33t", "1337", "leetspeak", "leet markdown", "|-|4ck3d", "5p34k"
         ]
         self.multi_turn_markers = [
             "for now", "first", "initially", "let's start with", "stay in character",
-            "ignore previous"
+            "ignore previous", "continue from", "step 1", "reminder"
         ]
-        self.negation_word_list = ["not", "without", "except", "unless", "besides", "never", "no"]
+        self.negation_word_list = ["not", "without", "except", "unless", "besides", "never", "no", "avoid"]
 
         # Evasion Markers
-        self.conditional_markers = ["if", "when", "unless", "provided that", "assuming"]
-        self.indirect_markers = ["could you", "would it be possible", "i wonder if", "can we"]
+        self.conditional_markers = ["if", "when", "unless", "provided that", "assuming", "in case"]
+        self.indirect_markers = ["could you", "would it be possible", "i wonder if", "can we", "is it possible"]
 
     def extract_nlp_features_reused(self, prompt: str, doc) -> Dict[str, Any]:
         """
@@ -153,6 +165,8 @@ class FeatureExtractor:
         slang_score = self._count_markers(prompt_lower, self.special_slang_markers)
         leet_detected = self._count_markers(prompt_lower, self.leet_markers) > 0
         
+        formatting_pressure_count = self._count_markers(prompt_lower, self.formatting_pressure_markers)
+        
         role_play_detected = (role_play_score + slang_score) > 0
         multi_turn_setup = self._count_markers(prompt_lower, self.multi_turn_markers) > 0
         
@@ -190,7 +204,8 @@ class FeatureExtractor:
             "question_density": question_density,
             "conditional_count": conditional_count,
             "indirect_request_count": indirect_request_count,
-            "leetspeak_detected": leet_detected
+            "leetspeak_detected": leet_detected,
+            "formatting_pressure_count": formatting_pressure_count
         }
 
     def extract_all(self, prompt: str) -> Dict[str, Any]:

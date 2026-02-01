@@ -18,29 +18,32 @@ class IntegratedFirewall:
         if self.nlp_enabled:
             print("🔗 Initializing NLP Layer (Phase 1)...")
             try:
-                from NLP.core.pipeline import DetectionPipeline
-                # We need to load NLP config/weights. Assuming standard paths relative to NLP dir.
-                # Just instantiating might fail if CWD is not NLP. 
-                # Ideally, DetectionPipeline should be robust to paths.
-                # Let's try to set it up.
+                # Use absolute paths for reliability
+                ml_dir = os.path.dirname(os.path.abspath(__file__))
+                base_path = os.path.abspath(os.path.join(ml_dir, '..', 'NLP'))
+                
+                # NLP internal code extracts from 'core' and 'extractors' 
+                # directly, so we MUST have the NLP folder in sys.path.
+                if base_path not in sys.path:
+                    sys.path.append(base_path)
+                
+                from core.pipeline import DetectionPipeline
                 import yaml
                 import json
                 
-                base_path = os.path.join(os.path.dirname(__file__), '../NLP')
-                config_path = os.path.join(base_path, 'config/system.yaml')
-                weights_path = os.path.join(base_path, 'config/weights.json')
+                config_path = os.path.join(base_path, 'config', 'system.yaml')
+                weights_path = os.path.join(base_path, 'config', 'weights.json')
+                
+                if not os.path.exists(config_path):
+                    raise FileNotFoundError(f"NLP Config not found at {config_path}")
                 
                 with open(config_path, 'r') as f:
                     config = yaml.safe_load(f)
                 with open(weights_path, 'r') as f:
                     weights = json.load(f)
                     
-                # Fix paths in config if they are relative
-                # (Assuming PatternDB uses paths relative to CWD, which might be different now)
-                # This is a common integration pain point. 
-                # For now, we assume running from Project Root or we patch the paths.
+                # Fix paths in config to be absolute
                 if 'patterns' in config and 'global_path' in config['patterns']:
-                     # Make absolute
                      p = config['patterns']['global_path']
                      if not os.path.isabs(p):
                          config['patterns']['global_path'] = os.path.join(base_path, p)
@@ -55,6 +58,7 @@ class IntegratedFirewall:
         if self.ml_enabled:
             print("🔗 Initializing ML Layer (Phase 2)...")
             try:
+                # MLFirewall handles its own pathing relative to its location
                 self.ml_firewall = MLFirewall()
                 if self.ml_firewall.is_loaded:
                     print("✅ ML Layer Ready")
